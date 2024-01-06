@@ -35,38 +35,52 @@ import csv
 import os, sys
 import pandas as pd
 
-USERS_OPENEI_API_KEY = ''  // 변수 초기화 및 빈 문자열 할당
+USERS_OPENEI_API_KEY = ''  # 변수 초기화 및 빈 문자열 할당
 ADDRESS = '3420 Hillview Ave, Palo Alto, CA 94304'
 LIMIT = 20
 
+#전기요금 정보 가져와 처리
 class API:
     def __init__(self):
+     # OpenEI API 엔드포인트 URL (컴퓨터 네트워크에 연결하고 컴퓨터 네트워크와 정보를 교환하는 물리적 디바이스)
         self.URL = "https://api.openei.org/utility_rates"
+         
+    #API 요청에 사용될 매개변수들을 정의    
         self.PARAMS = {'version': 5, 'api_key': USERS_OPENEI_API_KEY, 'format': 'json',
                        'address': ADDRESS, 'limit': LIMIT}
+        
+
+      # OpenEI API에 GET 요청을 보내고 응답을 저장
         self.r = requests.get(url=self.URL, params=self.PARAMS)
+     # 응답을 JSON 형식으로 파싱하여 데이터 속성에 저장
         self.data = self.r.json()
+      # 에러가 응답에 포함되어 있다면 예외 발생
         if 'error' in self.data.keys():
             raise Exception(f'\nBad API call: {self.data["error"]}')
+      # 임시 및 최종 결과 파일의 파일명
         self.temp_file = "tariff_temp.csv"
         self.new_file = "tariff.csv"
-
+     
+      # 다양한 데이터 구조를 저장하는 속성들
         self.tariff = None
         self.energyratestructure = []
         self.energyweekdayschedule = []
         self.energyweekendschedule = []
         self.energy_period_list = []
-
+     
+     # 요금과 관련된 정보를 저장하는 속성들
         self.max = None
         self.rate = None
         self.unit = None
         self.adj = None
         self.sell = None
-
+     
+       # 날짜 목록을 저장하는 속성들
         self.weekday_date_list = []
         self.weekend_date_list = []
         self.date_list = []
 
+       # CSV 파일의 헤더 열을 정의하는 리스트
         self.header = ['Period', 'Tier 1 Max', 'Tier 1 Rate',
                                  'Tier 2 Max', 'Tier 2 Rate',
                                  'Tier 3 Max', 'Tier 3 Rate',
@@ -79,22 +93,37 @@ class API:
     def print_all(self):
         """
         Prints necessary identifying information of all tariffs that show from result page on OpenEI
-
+        #OpenEI API 결과페이지에서 표시된 모든 전력 요금에 대한 필수 식별정보를 출   
         """
+
+     # 초기 카운트 값을 1로 설정
         count = 1
+     # OpenEI API 응답에서 "items"를 반복하여 각각의 요금 정보를 출력
         for item in self.data["items"]:
             print("---------------------------------------------------", count)
+         # Utility 정보 출력
             print("Utility.......", item["utility"])
+         # Name 정보 출력
             print("Name..........", item["name"])
+
+         # End Date 정보가 있으면 출력
             if "enddate" in item:
                 print("End Date......", item["enddate"])
+
+         # Start Date 정보가 있으면 출력
             if "startdate" in item:
                 print("Start Date....", item["startdate"])
+
+          # EIA ID 정보 출력
             print("EIA ID........", item["eiaid"])
+         # URL 정보 출력
             print("URL...........", item["uri"])
+
+         # Description 정보가 있으면 출력
             if "description" in item:
                 print("Description...", item["description"])
             print(" ")
+         # 카운트 증가 (몇 번째 전기 요금인지 나타내기 위해)
             count += 1
 
     def reset(self):
@@ -102,6 +131,8 @@ class API:
         Resets tariff's tier values to None; necessary for print_index
 
         """
+
+     # print_index 메서드 호출 전 전력 요금의 티어(층) 값들을 None으로 초기화하여 새로운 인덱스를 출력하기 전 값들이 올바르게 초기화되도록 함.
         self.max = None
         self.rate = None
         self.unit = None
@@ -116,8 +147,10 @@ class API:
             index (Int): user input for which tariff they choose
 
         """
+
+     # 입력된 인덱스가 유효한 범위 내에 있는지 확인
         i = index
-        while i not in range(1, LIMIT + 1):
+        while i not in range(1, LIMIT + 1): # 상단 limit = 20
             print('That index is out of range, please try another...')
             i = int(input("Which tariff would you like to use?..."))
         label = self.data["items"][i - 1]["label"]
