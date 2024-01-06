@@ -150,21 +150,32 @@ class API:
 
      # 입력된 인덱스가 유효한 범위 내에 있는지 확인
         i = index
-        while i not in range(1, LIMIT + 1): # 상단 limit = 20
+     # 조건 범위에 있지 않는 동안 루프가 반복해서 실행
+        while i not in range(1, LIMIT + 1): 
             print('That index is out of range, please try another...')
             i = int(input("Which tariff would you like to use?..."))
+
+       # 선택한 인덱스에 해당하는 전력 요금의 레이블을 가져옴
+       # "items"의 목록에서 특정 인덱스 'i-1'에 해당하는 요소 선택 후 그 요소에서 "label"이라는 속성 선택
         label = self.data["items"][i - 1]["label"]
+     # API를 통해 선택한 전력 요금에 대한 상세 정보를 가져옴
         params = {'version': 5, 'api_key': USERS_OPENEI_API_KEY, 'format': 'json', 'getpage': label, 'detail': 'full'}
         r = requests.get(url=self.URL, params=params)
         self.tariff = r.json()
 
-        if "energyratestructure" in self.tariff["items"][0]:
+      # 전력 요금 구조에 "energyratestructure"가 있는 경우 해당 정보를 설정
+        if "energyratestructure" in self.tariff["items"][0]: #items에서 첫번째 요소 선택
             self.energyratestructure = self.tariff["items"][0]["energyratestructure"]
             pcount = 1  # period count
             tcount = 1  # tier count
+         # 각 기간(period)에 대해 반복
             for p in self.energyratestructure:
+             # 전력 요금의 기간 객체를 생성하고 리스트에 추가
                 self.energy_period_list.append(period.Period(pcount))
+
+              # 각 티어에 대해 반복
                 for i in p:
+                 #"max" 키가 존재할경우 'self.max'에 해당 값 할당당
                     if "max" in i:
                         self.max = i["max"]
 
@@ -180,8 +191,12 @@ class API:
                     if "sell" in i:
                         self.sell = i["sell"]
 
+                   # 티어 객체를 생성하고 현재 기간에 추가
+                   # et.Tier 클래스의 인스턴스를 생성.(객체)
+                   #pcount - 1 에 해당하는 위치에 et.Tier 추가 
                     self.energy_period_list[pcount - 1].add(et.Tier(tcount, self.max, self.rate, self.unit, self.adj, self.sell))
                     tcount += 1
+                 # 속성 초기화
                     self.reset()
                 tcount = 1
                 pcount += 1
@@ -191,16 +206,24 @@ class API:
         Prints energy structure, month and hour schedule of when every period is active, to terminal
 
         """
+       # 주중 및 주말의 에너지 스케줄을 가져옴
         self.energyweekdayschedule = self.tariff["items"][0]["energyweekdayschedule"]
         self.energyweekendschedule = self.tariff["items"][0]["energyweekendschedule"]
-        for year in self.energyweekdayschedule:
+        
+     # 주중 스케줄에 대한 처리
+       for year in self.energyweekdayschedule:
             count = 0
+            # 각 월에 대한 처리
             for month in year:
+               # 각 월의 값에 1을 더함
                 year[count] = month + 1
                 count += 1
+         # 주말 스케줄에 대한 처리
         for year in self.energyweekendschedule:
             count = 0
+           # 각 월에 대한 처리
             for month in year:
+               # 각 월의 값에 1을 더함
                 year[count] = month + 1
                 count += 1
 
@@ -209,33 +232,51 @@ class API:
         Makes a csv file with weekday schedule, weekend schedule, and the rates of each period
 
         """
+       # 주중 및 주말 스케줄, 시간 및 월을 나타내는 데이터 정의
+       # self.temp_file 파일을 쓰기 모드("w")로 열기
+       # newline=''은 CSV 파일에서 빈 줄을 추가하지 않도록 하는 옵션
         with open(self.temp_file, "w", newline='') as csvfile:
+          # csvfile을 csv.writer 객체로 생성하여 데이터를 CSV 형식으로 쓰기 위한 준비
+          # 이 객체를 사용하여 데이터를 파일에 쓸 수 있습니다.
+          # with 문을 사용해 해당 파일 객체를 반환. / with 블록을 나갈 때, 파일이 자동으로 닫힘. 
             tariff_writer = csv.writer(csvfile)
             count = 0
             hours = [" ", 12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
             months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
+          # 헤더로 시간 정보를 추가
+          # tariff_writer를 사용하여 CSV 파일에 한 행을 작성하는 코드
             tariff_writer.writerow(hours)
+         # 주중 스케줄에 대한 처리
             for i in self.energyweekdayschedule:
+                # 현재 처리 중인 i 리스트(하나의 월에 대한 데이터)의 첫 번째 위치(인덱스 0)에 해당 월의 이름을 추가합니다. 
+                # months 리스트에서 count 인덱스에 있는 월의 이름이 추가
                 i.insert(0, months[count])
+                # CSV 파일에 현재 처리 중인 데이터를 작성합니다. 이때, 월의 이름이 추가된 상태로 한 행으로 작성
                 tariff_writer.writerow(i)
+                # 다음 월의 이름을 처리하기 위해 count 변수를 증가
                 count += 1
 
+           # 공백 라인 추가
             tariff_writer.writerow(" ")
             tariff_writer.writerow(" ")
             tariff_writer.writerow(" ")
 
             count = 0
+             # 다시 헤더로 시간 정보를 추가
             tariff_writer.writerow(hours)
+           # 주말 스케줄에 대한 처리
             for i in self.energyweekendschedule:
                 i.insert(0, months[count])
                 tariff_writer.writerow(i)
                 count += 1
 
+           # 공백 라인 추가
             tariff_writer.writerow(" ")
             tariff_writer.writerow(" ")
             tariff_writer.writerow(" ")
 
+           # 각 기간의 요금 정보를 추가
             tariff_writer.writerow(self.header)
             for period in self.energy_period_list:
                 row = [period.number]
