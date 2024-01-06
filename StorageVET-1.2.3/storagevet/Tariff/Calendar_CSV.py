@@ -35,7 +35,7 @@ import csv
 import os, sys
 import pandas as pd
 
-USERS_OPENEI_API_KEY = ''
+USERS_OPENEI_API_KEY = ''  // 변수 초기화 및 빈 문자열 할당
 ADDRESS = '3420 Hillview Ave, Palo Alto, CA 94304'
 LIMIT = 20
 
