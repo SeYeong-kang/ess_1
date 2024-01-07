@@ -33,6 +33,7 @@ class Period:
         self.tier_list = [] # 해당 기간에 속한 티어들의 리스트
         self.highest_rate = 0 # 해당 기간에서 가장 높은 요금 비율을 저장하는 변수
 
+ # 특정 기간에서 특정 티어의 정보 가져옴
     def get_tier(self, number):
         """"
         Args:
@@ -44,6 +45,7 @@ class Period:
         """
         return self.tier_list[number]
 
+ # 새로운 티어를 추가
     def add(self, tier):
         """"
         Args:
@@ -51,7 +53,8 @@ class Period:
 
         """
         self.tier_list.append(tier)
-
+     
+# 해당 기간의 정보 출력
     def tostring(self):
         """
         Pretty print
@@ -65,7 +68,9 @@ class Period:
 
         """
         for tier in self.tier_list:
+         # 티어의 요금 비율이 None인 경우 무시
             if tier.get_rate() is None:
                 continue
+             # 현재 티어의 요금 비율이 기존의 highest_rate보다 높으면 업데이트
             elif tier.get_rate() > self.highest_rate:
                 self.highest_rate = tier.get_rate()
