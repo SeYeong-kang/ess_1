@@ -106,18 +106,29 @@ class Deferral(ValueStream):
             find_failure_year = True
 
         # get list of RTEs
+        # RTE(Rated Technology Energy) 목록 가져오기
         rte_lst = [der.rte for der in poi.der_list if der.technology_type == 'Energy Storage System']
+        
+        # 각 DER(분산 에너지 자원) 유형별로 최대 충전/방전 및 에너지 용량 계산
         ess_cha_max = 0
         ess_dis_max = 0
         ess_ene_max = 0
         conventional_gen_max = 0
+     
         for der_isnt in poi.der_list:
             if der_isnt.technology_type == "Energy Storage System":
-                ess_cha_max += der_isnt.ch_max_rated
-                ess_dis_max += der_isnt.dis_max_rated
+             # 에너지 저장 시스템의 최대 충전/방전 및 에너지 용량 합산
+                ess_dis_max += der_isnt.dis_max_rated #ess의 최대 방전 용량 누적
+                # ene_max_rated는 ess의 최대 에너지 저장 용량
+                # ulsoc는 ess의 최대 에너지 저장 용량에서 사용 가능한 실제 에너지 저장 용량의 비율
+                # 최대 에너지 저장 용량을 누적한 값값
                 ess_ene_max += der_isnt.ene_max_rated * der_isnt.ulsoc
+             
             if der_isnt.technology_type == 'Generator':
+             # 발전기의 최대 방전 용량 합산
                 conventional_gen_max += der_isnt.discharge_capacity()
+             
+        # Deferral에 관련된 결과를 저장할 열 초기화
         years_deferral_column = []
         min_power_deferral_column = []
         min_energy_deferral_column = []
