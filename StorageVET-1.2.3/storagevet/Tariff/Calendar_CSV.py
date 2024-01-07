@@ -292,10 +292,14 @@ class API:
         """
         with open(self.temp_file, 'r') as inp, open(self.new_file, "w") as out:
             writer = csv.writer(out)
+         #CSV 파일 (self.temp_file)을 읽기용으로 열고
             for row in csv.reader(inp):
                 if ''.join(row).strip():  # https://stackoverflow.com/questions/18890688/how-to-skip-blank-line-while-reading-csv-file-using-python/54381516
+                 # 입력 CSV 파일의 각 행을 반복하며 비어 있지 않은 행을 새 파일에 작성
                     writer.writerow(row)
+        # 임시 파일 (self.temp_file)을 제거
         os.remove(self.temp_file)
+        # Pandas 데이터 프레임(text)으로 읽어짐.
         text = pd.read_csv(self.new_file)
 
         # weekday schedule
@@ -308,6 +312,10 @@ class API:
         # weekend schedule
         print("DF_WEEKEND")
         weekend_df = text[13:25]
+        # Datafram의 인덱스 재설정
+        # drop = True >> 현재의 인덱스를 삭제
+        # inplace = True >> DataFrame 자체를 수정하고 반환하지 않음.
+        # 즉 weekend_df의 인덱스를 0부터 시작하여 재설정하고 이를 Dataframe에 적용
         weekend_df.reset_index(drop=True, inplace=True)
         print(weekend_df)
         print("\n")
@@ -317,8 +325,11 @@ class API:
         periods_df = text[25:]
 
         # rename header to period header
+        #iloc은 정수 위치를 기반으로 DataFrame에서 행을 선택하는 메서드
         header = periods_df.iloc[0]
+        #첫 번째 행을 제외한 모든 행 선택택 
         periods_df = periods_df[1:]
+        # 열 이름 변경
         periods_df = periods_df.rename(columns=header)
 
         # reset index to start at 0
@@ -352,5 +363,5 @@ def main():
     api = API()
     api.run()
 
-
+# 다른 모듈에 의해 임포트 될 때 실행 안됨
 if __name__ == "__main__": main()
