@@ -29,9 +29,9 @@ Copyright (c) 2023, Electric Power Research Institute
 """
 class Period:
     def __init__(self, number):
-        self.number = number
-        self.tier_list = []
-        self.highest_rate = 0
+        self.number = number  # 기간의 번호 또는 식별자
+        self.tier_list = [] # 해당 기간에 속한 티어들의 리스트
+        self.highest_rate = 0 # 해당 기간에서 가장 높은 요금 비율을 저장하는 변수
 
     def get_tier(self, number):
         """"
