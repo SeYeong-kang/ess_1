@@ -58,25 +58,25 @@ class Deferral(ValueStream):
         ValueStream.__init__(self, 'Deferral', params)
 
         # add Deferral specific attributes
-        self.max_import = params['planned_load_limit']  # positive
-        self.max_export = params['reverse_power_flow_limit']  # negative
-        self.last_year = params['last_year'].year
-        self.year_failed = params['last_year'].year + 1
-        self.min_years = params.get('min_year_objective', 0)
-        self.load = params['load']  # deferral load
-        self.growth = params['growth']/100  # Growth Rate of deferral load (%/yr)
-        self.price = params['price']  # $/yr
+        self.max_import = params['planned_load_limit']  # 계획 부하 한계값 (양수)
+        self.max_export = params['reverse_power_flow_limit']  # 역전력 한계값 (음수)
+        self.last_year = params['last_year'].year # 마지막 연도
+        self.year_failed = params['last_year'].year + 1 # 실패로 간주되는 연도
+        self.min_years = params.get('min_year_objective', 0) # 목적의 최소 연수
+        self.load = params['load']  # deferral load 
+        self.growth = params['growth']/100  # Deferral 부하의 성장률 (%/년)
+        self.price = params['price']  # $/yr (연간비용)
 
-        self.p_min = 0
-        self.e_min = 0
-        self.deferral_df = None
-        self.e_walk = pd.Series()
-        self.power_requirement = pd.Series()
+        self.p_min = 0 # 최소 전력 ( 프로그램이 실행되면 필요한 값으로 업데이트 될 것이어 초기엔 0 으로 설정)
+        self.e_min = 0 # 최소 에너지
+        self.deferral_df = None # Deferral을 위한 데이터프레임
+        self.e_walk = pd.Series() # 에너지 워크를 위한 시리즈 ( 초기에 빈 Series로 초기화되었으며, 이후 시뮬레이션 실행 중에 해당 Series에 데이터가 추가되거나 업데이트 됨)
+        self.power_requirement = pd.Series() # 전력 요구 사항을 위한 시리즈
 
     def check_for_deferral_failure(self, end_year, poi, frequency, opt_years, def_load_growth):
         """This functions checks the constraints of the storage system against any predispatch or user inputted constraints
         for any infeasible constraints on the system.
-
+        특정 시점에서 전력망 및 에너지 저장 시스템이 계획된 부하 한계를 초과하는지 확인하는 함수.
         The goal of this function is to predict the year that storage will fail to deferral a T&D asset upgrade.
 
         Only runs if Deferral is active.
@@ -91,13 +91,18 @@ class Deferral(ValueStream):
         Returns: new list of optimziation years
 
         """
+        # 첫 번째 재구축 실패 연도를 찾는 중임을 사용자에게 알림
         TellUser.info('Finding first year of deferral failure...')
+        # 전력망 재구축 실패의 첫 해를 찾는다.
         current_year = self.load.index.year[-1]
 
+        # 추가 연도 리스트 초기화
         additional_years = [current_year]
         try:
+            # 크기 조절 최적화가 아닌 경우 실패 연도 찾기
             find_failure_year = not poi.is_sizing_optimization
         except AttributeError:
+            # 예외 발생 시 기본적으로 실패 연도 찾기
             find_failure_year = True
 
         # get list of RTEs
