@@ -47,7 +47,7 @@ SATURDAY = 5
 
 class DemandChargeReduction(ValueStream):
     """ Retail demand charge reduction. A behind the meter service.
-
+        소매 수요 요금 감소. 계량기 뒤의 서비스입니다.
     """
 
     def __init__(self, params):
@@ -57,13 +57,15 @@ class DemandChargeReduction(ValueStream):
             params (Dict): input parameters
         """
         ValueStream.__init__(self, 'DCM', params)
-        # self.demand_rate = params['rate']
-        self.tariff = params['tariff']
-        self.billing_period = params['billing_period']
-        self.growth = params['growth']/100
+        # self.demand_rate = params['rate'] 
 
-        self.billing_period_bill = pd.DataFrame()
-        self.monthly_bill = pd.DataFrame()
+        # params 딕셔너리에서 'tariff' 키에 해당하는 값을 가져와서 self.tariff 속성에 할당하는 역할
+        self.tariff = params['tariff'] # 전기 요금 체계
+        self.billing_period = params['billing_period']# 청구 주기
+        self.growth = params['growth']/100 # 수요 예측 성장률
+
+        self.billing_period_bill = pd.DataFrame() # 청구 주기별 요금
+        self.monthly_bill = pd.DataFrame() # 월별 요금
 
     def grow_drop_data(self, years, frequency, load_growth):
         """ Adds data by growing the given data OR drops any extra data that might have slipped in.
@@ -79,18 +81,26 @@ class DemandChargeReduction(ValueStream):
         a growth rate applied to them. Then it lists them within self.billing_period.
 
         """
+        # 현재 데이터에 대한 연도 가져오기
         data_year = self.billing_period.index.year.unique()
+        # 누락된 데이터가 있는 연도 확인
+        # years 리스트에 있는 연도를 Period 형태로 변환하여 set으로 만드는 코드
+        # 두 개의 set에 대해 - 연산을 수행하면, 첫 번째 set에는 포함되지만 두 번째 set에는 포함되지 않는 연도들의 set을 얻게 됨.
         no_data_year = {pd.Period(year) for year in years} - {pd.Period(year) for year in data_year}  # which years do we not have data for
 
+        # 누락된 데이터가 있는 경우
         if len(no_data_year) > 0:
             for yr in no_data_year:
+                # 누락된 데이터가 있는 연도에서 기존 데이터의 소스 연도 가져오기
                 source_year = pd.Period(max(data_year))
-
+             
+                # 연도 간의 차이 계산
                 years = yr.year - source_year.year
 
-                first_day = '1/1/' + str(yr.year)
-                last_day = '1/1/' + str(yr.year + 1)
+                first_day = '1/1/' + str(yr.year) # 각 연도의 1월 1일을 시작일로 설정
+                last_day = '1/1/' + str(yr.year + 1) # 각 연도의 1월 1일을기준으로 다음 연도의 1월1일 전날인 마지막일로 설정 
 
+                # 새로운 인덱스 생성
                 new_index = pd.date_range(start=first_day, end=last_day, freq=frequency, closed='left')
                 size = new_index.size
 
@@ -123,6 +133,8 @@ class DemandChargeReduction(ValueStream):
                     TellUser.error('The billing periods in the input file do not partition the year. '
                                    + 'Please check the tariff input file')
                     raise TariffError('The billing periods in the input file do not partition the year')
+
+                # 기존 tariff 및 billing_period에 새로운 데이터 추가
                 self.tariff = pd.concat([self.tariff, add_tariff], sort=True)
                 self.billing_period = pd.concat([self.billing_period, billing_period], sort=True)
 
