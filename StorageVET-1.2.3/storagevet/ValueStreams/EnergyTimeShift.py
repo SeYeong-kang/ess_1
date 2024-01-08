@@ -60,7 +60,7 @@ class EnergyTimeShift(ValueStream):
         self.tariff = params['tariff']
         self.growth = params['growth']/100
 
-        self.billing_period_bill = pd.DataFrame()
+        self.billing_period_bill = pd.DataFrame() # 빈 데이터프레임 생성
         self.monthly_bill = pd.DataFrame()
 
     def grow_drop_data(self, years, frequency, load_growth):
@@ -75,36 +75,47 @@ class EnergyTimeShift(ValueStream):
 
 
         """
-        data_year = self.price.index.year.unique()
+        data_year = self.price.index.year.unique() # 현재 객체의 가격 데이터에서 연도를 추출
         no_data_year = {pd.Period(year) for year in years} - {pd.Period(year) for year in data_year}  # which years do we not have data for
 
-        if len(no_data_year) > 0:
+        if len(no_data_year) > 0: # 불필요한 데이터가 있는 경우, 해당 연도에 대한 처리를 진행
             for yr in no_data_year:
                 source_year = pd.Period(max(data_year))
 
                 years = yr.year - source_year.year
 
-                # Build Energy Price Vector based on the new year
+                # Build Energy Price Vector based on the new year(새로운 연도를 기반으로 에너지 가격 벡터 작성)
                 new_index = Lib.create_timeseries_index([yr.year], frequency)
                 temp = pd.DataFrame(index=new_index)
+
+                # new_index의 각 날짜에 대해 토요일 이전인지 여부를 판단하여 해당 날짜가 토요일 이전이면 1, 이후이면 0으로 설정.
                 weekday = (new_index.weekday < SATURDAY).astype('int64')
+                # new_index에 1초를 더한 후 해당 날짜의 시간을 추출하고, 1을 더하여 해당 시간대를 구함.
                 he = (new_index + pd.Timedelta('1s')).hour + 1
+                #  새로운 인덱스 길이만큼 0으로 초기화
                 temp['price'] = np.zeros(len(new_index))
 
                 for p in range(len(self.tariff)):
                     # edit the pricedf energy price and period values for all of the periods defined
                     # in the tariff input file
+                    # iloc을 사용하여 정수 위치를 기반으로 행을 선택
                     bill = self.tariff.iloc[p, :]
                     mask = Financial.create_bill_period_mask(bill, temp.index.month, he, weekday)
-
+                 
+                    # 조건에 맞는 인덱스를 가진 temp 데이터프레임에서 'price' 열의 값을 추출하여 배열로 반환
                     current_energy_prices = temp.loc[mask, 'price'].values
+                    # current_energy_prices 배열 중에서 0보다 큰 값이 하나라도 있는지 확인하는 부분
+                    # np.any()는 해당 배열 중 하나 이상의 요소가 True인지 검사
                     if np.any(np.greater(current_energy_prices, 0)):
                         # More than one energy price applies to the same time step
                         TellUser.warning('More than one energy price applies to the same time step.')
                     # Add energy prices
+                    # 현재 에너지 가격이 적용되는 시간대에 대해 bill['Value']만큼의 값을 기존 에너지 가격에 더해주는 작업을 수행
                     temp.loc[mask, 'price'] += bill['Value']
                 # apply growth to new energy rate
+                # ** : 거듭제곱
                 new_p_energy = temp['price']*(1+self.growth)**years
+                #  self.price와 new_p_energy 두 개의 데이터프레임을 이어붙이는(concatenating) 작업을 수행
                 self.price = pd.concat([self.price, new_p_energy], sort=True)  # add to existing
 
     def objective_function(self, mask, load_sum, tot_variable_gen, generator_out_sum, net_ess_power, annuity_scalar=1):
