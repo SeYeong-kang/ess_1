@@ -120,6 +120,7 @@ class EnergyTimeShift(ValueStream):
 
     def objective_function(self, mask, load_sum, tot_variable_gen, generator_out_sum, net_ess_power, annuity_scalar=1):
         """ Generates the full objective function, including the optimization variables.
+        최적화 문제를 위한 목적 함수를 생성
 
         Args:
             mask (DataFrame): A boolean array that is true for indices corresponding to time_series data included
@@ -135,9 +136,12 @@ class EnergyTimeShift(ValueStream):
             A dictionary with expression of the objective function that it affects. This can be passed into the cvxpy solver.
 
         """
+        # 'mask'에 포함된 시계열 데이터의 수를 계산하여 'size'에 할당
         size = sum(mask)
+        # 'energy_price' 파라미터를 생성하고, 'mask'에 해당하는 에너지 가격 데이터를 값으로 설정
         price = cvx.Parameter(size, value=self.price.loc[mask].values, name='energy_price')
 
+        # cvx.multiply(a, b)는 a와 b의 각 원소를 곱한 결과를 반환
         load_price = cvx.multiply(price, load_sum)
         ess_net_price = cvx.multiply(price, net_ess_power)
         variable_gen_prof = cvx.multiply(-price, tot_variable_gen)
@@ -153,21 +157,45 @@ class EnergyTimeShift(ValueStream):
             pertaining to this instance
 
         """
+         # 빈 데이터프레임을 생성하고 인덱스를 energy price의 인덱스로 설정
         report = pd.DataFrame(index=self.price.index)
+        # 'Energy Price ($/kWh)' 열을 생성하고 해당 열의 값으로 energy price를 설정
         report.loc[:, 'Energy Price ($/kWh)'] = self.price
         return report
 
     def drill_down_reports(self, monthly_data=None, time_series_data=None, technology_summary=None, **kwargs):
         """ Calculates any service related dataframe that is reported to the user.
+        사용자에게 보고될 다양한 서비스 관련 데이터프레임을 계산
 
         Returns: dictionary of DataFrames of any reports that are value stream specific
             keys are the file name that the df will be saved with
 
         """
+        # 결과를 저장할 딕셔너리 생성
         df_dict = dict()
+
+        # 시계열 데이터로부터 에너지 가격 데이터 추출
+        # time_series_data 데이터프레임에서 'Energy Price ($/kWh)' 열만 추출
+        # .to_frame(): 선택한 열을 데이터프레임 형태로 변환
         energy_price = time_series_data.loc[:, 'Energy Price ($/kWh)'].to_frame()
-        energy_price.loc[:, 'date'] = time_series_data.index.date
+
+        # 'date' 및 'hour' 열 추가
+        # energy_price.loc[:, 'date']: energy_price 데이터프레임에서 모든 행의 'date' 열을 선택
+        # time_series_data.index.date: time_series_data 데이터프레임의 인덱스를 날짜 형식으로 변환
+        energy_price.loc[:, 'date'] = time_series_data.index.date 
+        # energy_price.loc[:, 'hour']: energy_price 데이터프레임에서 모든 행의 'hour' 열을 선택
+        # 데이터프레임의 인덱스에 1초를 더한 새로운 시간을 계산
+        # .hour: 새로 조정된 시간에서 시간 정보만을 추출
+        # + 1: 시간 정보에 1을 더하여 1부터 24까지의 시간을 나타내도록 조정
         energy_price.loc[:, 'hour'] = (time_series_data.index + pd.Timedelta('1s')).hour + 1  # hour ending
+
+        # 인덱스 리셋 및 결과 데이터프레임 준비
+        # drop=True는 이전 인덱스를 열로 유지하지 않고, 새로운 정수 인덱스를 할당하도록 지시
         energy_price = energy_price.reset_index(drop=True)
+
+        # 'energyp_map' 키에 해당하는 데이터프레임을 딕셔너리에 추가
+        # df_dict['energyp_map']: 딕셔너리 df_dict에 'energyp_map'이라는 키를 추가
+        # energy_price 데이터프레임을 pivot table로 변환합니다. 'Energy Price ($/kWh)' 열의 값이 테이블의 값으로, 'hour'를 행 인덱스로, 'date'를 열 인덱스로 사용
+        # 데이터프레임은 'hour'와 'date'를 기준으로 에너지 가격을 표시한 pivot table.
         df_dict['energyp_map'] = energy_price.pivot_table(values='Energy Price ($/kWh)', index='hour', columns='date')
         return df_dict
