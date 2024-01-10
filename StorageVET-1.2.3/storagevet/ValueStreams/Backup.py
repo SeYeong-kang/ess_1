@@ -38,7 +38,7 @@ import storagevet.Library as Lib
 import pandas as pd
 import numpy as np
 
-
+# 백업 전력 서비스에 대한 구체적인 동작 정의
 class Backup(ValueStream):
     """ Backup Power Service. Each service will be daughters of the ValueStream class.
 
