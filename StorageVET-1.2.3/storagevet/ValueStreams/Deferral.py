@@ -184,7 +184,7 @@ class Deferral(ValueStream):
             self.e_walk = pd.Series(e_walk, index=self.load.index)
             self.power_requirement = pd.Series(storage_power_requirement, index=self.load.index)
 
-            # 실패 연도를 찾아낼 필요가 있고, 최소 전력 또는 최소 에너지 요구 사항이 ㄷ-ess의 능력을 초과하는 경우
+            # 실패 연도를 찾아낼 필요가 있고, 최소 전력 또는 최소 에너지 요구 사항이 ess의 능력을 초과하는 경우
             if find_failure_year and (self.p_min > ess_dis_max or self.p_min > ess_cha_max or self.e_min > ess_ene_max):
                 # then we predict that deferral will fail
                 last_deferral_yr = current_year - 1
