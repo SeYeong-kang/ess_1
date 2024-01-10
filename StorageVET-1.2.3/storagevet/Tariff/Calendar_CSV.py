@@ -38,7 +38,10 @@ import pandas as pd
 USERS_OPENEI_API_KEY = ''  # 변수 초기화 및 빈 문자열 할당
 ADDRESS = '3420 Hillview Ave, Palo Alto, CA 94304'
 LIMIT = 20
-
+'''
+ OpenEI(Open Energy Information) API를 활용하여 주소에 대한 전력 요금 정보를 가져와 처리하는 프로그램. 
+ 코드의 주요 목표는 사용자에게 전력 요금과 관련된 정보를 제공하고, 해당 정보를 활용하여 CSV 파일에 스케줄 및 기간/티어별 요금 정보를 작성
+ '''
 #전기요금 정보 가져와 처리
 class API:
     def __init__(self):
@@ -93,7 +96,7 @@ class API:
     def print_all(self):
         """
         Prints necessary identifying information of all tariffs that show from result page on OpenEI
-        #OpenEI API 결과페이지에서 표시된 모든 전력 요금에 대한 필수 식별정보를 출   
+        #OpenEI API 결과페이지에서 표시된 모든 전력 요금에 대한 필수 식별정보를 출력력   
         """
 
      # 초기 카운트 값을 1로 설정
