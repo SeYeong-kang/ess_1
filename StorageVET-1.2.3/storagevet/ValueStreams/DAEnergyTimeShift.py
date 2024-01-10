@@ -39,6 +39,7 @@ import storagevet.Library as Lib
 import numpy as np
 
 
+# 전일 에너지 시간 이동 => 전력 그리드에서 발생하는 전력수요의 일부를 하루 전에 미리 예측 위해
 class DAEnergyTimeShift(ValueStream):
     """ Day-Ahead Energy Time Shift. Each service will be daughters of the ValueStream class.
 
